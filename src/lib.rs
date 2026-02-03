@@ -6,7 +6,7 @@ pub mod echo;
 
 pub mod get_type;
 
-pub fn zen() {
+pub fn zen() -> Result<(), io::Error> {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -14,16 +14,12 @@ pub fn zen() {
         let mut command = String::new();
         io::stdin().read_line(&mut command).unwrap();
 
-        if command.trim() == "exit".to_string() {
-            break;
-        }
-
         let parts: Vec<&str> = command.split_whitespace().collect();
 
         match parts.as_slice() {
             ["echo", args @ ..] => echo(&args),
-            ["type", command] => get_type(command),
-            ["exit"] => break,
+            ["type", command] => get_type(command)?,
+            ["exit"] => return Ok(()),
             [] => {}
             _ => println!("{}: command not found", parts[0]),
         }
