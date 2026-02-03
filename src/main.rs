@@ -11,3 +11,4 @@ fn main() {
 }
 
 // wsl ~ -d Ubuntu-24.04
+// cd /mnt/c/users/dipan/desktop/dev/zen
