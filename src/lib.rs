@@ -15,8 +15,10 @@ pub mod get_type;
 pub mod pwd;
 
 pub fn zen() -> Result<(), io::Error> {
+    let mut current_path = String::from("/");
+
     loop {
-        print!("$ ");
+        print!("{}$ ", &current_path);
         io::stdout().flush().unwrap();
 
         let mut command = String::new();
@@ -26,6 +28,10 @@ pub fn zen() -> Result<(), io::Error> {
 
         if parts.len() < 1 {
             continue;
+        }
+
+        if parts[0] == "exit" {
+            return Ok(());
         }
 
         if !is_builtin(parts[0].trim()) {
@@ -38,7 +44,7 @@ pub fn zen() -> Result<(), io::Error> {
             //     ["exit"] => return Ok(()),
             //     _ => println!("{}: command not found", parts[0]),
             // }
-            run_built_in(&parts)?;
+            run_builtin(&parts, &mut current_path)?;
         }
     }
 }
@@ -51,7 +57,7 @@ fn is_builtin(command: &str) -> bool {
     }
 }
 
-fn run_built_in(parts: &Vec<&str>) -> Result<(), io::Error> {
+fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::Error> {
     match parts.as_slice() {
         ["echo", args @ ..] => {
             echo(&args);
@@ -62,14 +68,13 @@ fn run_built_in(parts: &Vec<&str>) -> Result<(), io::Error> {
             Ok(())
         }
         ["cd", path] => {
-            cd(path)?;
+            cd(path, current_path)?;
             Ok(())
         }
         ["pwd"] => {
             pwd()?;
             Ok(())
         }
-        ["exit"] => return Ok(()),
         _ => {
             println!("{}: command not found", parts[0]);
             Ok(())
