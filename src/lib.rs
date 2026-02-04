@@ -1,12 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{
-    cd::cd,
-    echo::echo,
-    external_runner::run_enternal_prog,
-    get_type::{BUILTIN_TYPES, get_type},
-    pwd::pwd,
-};
+use crate::get_type::BUILTIN_TYPES;
 
 pub mod cd;
 pub mod echo;
@@ -14,7 +8,7 @@ pub mod external_runner;
 pub mod get_type;
 pub mod pwd;
 
-pub fn zen() -> Result<(), io::Error> {
+pub fn run() -> Result<(), io::Error> {
     let mut current_path = String::from("/");
 
     loop {
@@ -35,15 +29,8 @@ pub fn zen() -> Result<(), io::Error> {
         }
 
         if !is_builtin(parts[0].trim()) {
-            run_enternal_prog(&parts);
+            external_runner::run_enternal_prog(&parts);
         } else {
-            // match parts.as_slice() {
-            //     ["echo", args @ ..] => echo(&args),
-            //     ["type", command] => get_type(command)?,
-            //     ["pwd"] => pwd()?,
-            //     ["exit"] => return Ok(()),
-            //     _ => println!("{}: command not found", parts[0]),
-            // }
             run_builtin(&parts, &mut current_path)?;
         }
     }
@@ -60,10 +47,10 @@ fn is_builtin(command: &str) -> bool {
 fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::Error> {
     match parts.as_slice() {
         ["echo", args @ ..] => {
-            echo(&args);
+            echo::echo(&args);
             Ok(())
         }
-        ["type", command] => match get_type(command) {
+        ["type", command] => match get_type::get_type(command) {
             Ok(msg) => {
                 println!("{}", msg);
                 Ok(())
@@ -71,13 +58,13 @@ fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::E
             Err(e) => Err(e),
         },
         ["cd", path] => {
-            if let Err(e) = cd(path, current_path) {
+            if let Err(e) = cd::cd(path, current_path) {
                 eprintln!("cd: {}", e);
             }
             Ok(())
         }
         ["pwd"] => {
-            pwd()?;
+            pwd::pwd()?;
             Ok(())
         }
         _ => {

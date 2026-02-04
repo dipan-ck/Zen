@@ -1,7 +1,7 @@
-use zen::zen;
+use zen::run;
 
 fn main() {
-    match zen() {
+    match run() {
         Err(err) => {
             println!("Error: {}", err);
             return;
