@@ -63,12 +63,17 @@ fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::E
             echo(&args);
             Ok(())
         }
-        ["type", command] => {
-            get_type(command)?;
-            Ok(())
-        }
+        ["type", command] => match get_type(command) {
+            Ok(msg) => {
+                println!("{}", msg);
+                Ok(())
+            }
+            Err(e) => Err(e),
+        },
         ["cd", path] => {
-            cd(path, current_path)?;
+            if let Err(e) = cd(path, current_path) {
+                eprintln!("cd: {}", e);
+            }
             Ok(())
         }
         ["pwd"] => {
