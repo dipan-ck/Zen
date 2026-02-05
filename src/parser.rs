@@ -25,7 +25,11 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
                 argument.push(commands[pos]);
                 pos += 1;
             }
-            args.push(String::from_utf8(argument).unwrap());
+            let str_arg = String::from_utf8(argument).unwrap();
+            if str_arg != "" {
+                args.push(str_arg);
+            }
+
             pos += 1;
         } else {
             if commands[pos] == b' ' {
@@ -33,6 +37,11 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
             } else {
                 let mut argument = Vec::new();
                 while pos < commands.len() && commands[pos] != b' ' {
+                    if commands[pos] == b'\'' {
+                        pos += 1;
+                        continue;
+                    }
+
                     argument.push(commands[pos]);
                     pos += 1;
                 }
@@ -40,6 +49,5 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
             }
         }
     }
-    println!("{:?}", args);
     Ok(args)
 }
