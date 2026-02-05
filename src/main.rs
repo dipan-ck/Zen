@@ -1,12 +1,6 @@
-use zen::run;
-
 fn main() {
-    match run() {
-        Err(err) => {
-            println!("Error: {}", err);
-            return;
-        }
-        _ => return,
+    if let Err(err) = zen::run() {
+        println!("Error ocured: {}", err);
     }
 }
 

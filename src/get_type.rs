@@ -2,7 +2,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::{env, fs, io};
 
-pub const BUILTIN_TYPES: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
+pub const BUILTIN_TYPES: [&str; 6] = ["echo", "ls", "exit", "type", "pwd", "cd"];
 
 pub fn get_type(command: &str) -> Result<String, io::Error> {
     let command = command.trim();

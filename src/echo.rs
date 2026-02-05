@@ -1,5 +1,5 @@
 pub fn echo(args: &[&str]) {
-    if args.len() < 1 {
+    if args.is_empty() {
         println!("Not enough Arguments");
         return;
     }

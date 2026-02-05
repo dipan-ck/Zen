@@ -3,7 +3,7 @@ use std::{env, io};
 pub fn cd(path: &str, current_path: &mut String) -> Result<(), io::Error> {
     env::set_current_dir(path)?;
     let cwd = std::env::current_dir()?;
-    *current_path = String::from(cwd.to_string_lossy().to_owned());
+    *current_path = String::from(cwd.to_string_lossy().clone());
     Ok(())
 }
 

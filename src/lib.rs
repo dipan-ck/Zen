@@ -6,6 +6,7 @@ pub mod cd;
 pub mod echo;
 pub mod external_runner;
 pub mod get_type;
+pub mod ls;
 pub mod pwd;
 
 pub fn run() -> Result<(), io::Error> {
@@ -20,7 +21,7 @@ pub fn run() -> Result<(), io::Error> {
 
         let parts: Vec<&str> = command.split_whitespace().collect();
 
-        if parts.len() < 1 {
+        if parts.is_empty() {
             continue;
         }
 
@@ -37,17 +38,13 @@ pub fn run() -> Result<(), io::Error> {
 }
 
 fn is_builtin(command: &str) -> bool {
-    if BUILTIN_TYPES.contains(&command) {
-        true
-    } else {
-        false
-    }
+    BUILTIN_TYPES.contains(&command)
 }
 
 fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::Error> {
     match parts.as_slice() {
         ["echo", args @ ..] => {
-            echo::echo(&args);
+            echo::echo(args);
             Ok(())
         }
         ["type", command] => match get_type::get_type(command) {
@@ -65,6 +62,10 @@ fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::E
         }
         ["pwd"] => {
             pwd::pwd()?;
+            Ok(())
+        }
+        ["ls"] => {
+            ls::ls()?;
             Ok(())
         }
         _ => {
