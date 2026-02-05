@@ -7,8 +7,8 @@ pub mod echo;
 pub mod external_runner;
 pub mod get_type;
 pub mod ls;
+pub mod parser;
 pub mod pwd;
-
 pub fn run() -> Result<(), io::Error> {
     let mut current_path = String::from("/");
 
@@ -19,20 +19,20 @@ pub fn run() -> Result<(), io::Error> {
         let mut command = String::new();
         io::stdin().read_line(&mut command).unwrap();
 
-        let parts: Vec<&str> = command.split_whitespace().collect();
+        let parsed_commands: Vec<String> = parser::parse(command)?;
 
-        if parts.is_empty() {
+        if parsed_commands.is_empty() {
             continue;
         }
 
-        if parts[0] == "exit" {
+        if parsed_commands[0] == "exit" {
             return Ok(());
         }
 
-        if !is_builtin(parts[0].trim()) {
-            external_runner::run_enternal_prog(&parts);
+        if !is_builtin(parsed_commands[0].trim()) {
+            external_runner::run_enternal_prog(&parsed_commands);
         } else {
-            run_builtin(&parts, &mut current_path)?;
+            run_builtin(&parsed_commands, &mut current_path)?;
         }
     }
 }
@@ -41,35 +41,35 @@ fn is_builtin(command: &str) -> bool {
     BUILTIN_TYPES.contains(&command)
 }
 
-fn run_builtin(parts: &Vec<&str>, current_path: &mut String) -> Result<(), io::Error> {
-    match parts.as_slice() {
-        ["echo", args @ ..] => {
+fn run_builtin(parsed_commands: &Vec<String>, current_path: &mut String) -> Result<(), io::Error> {
+    match parsed_commands.as_slice() {
+        [cmd, args @ ..] if cmd == "echo" => {
             echo::echo(args);
             Ok(())
         }
-        ["type", command] => match get_type::get_type(command) {
+        [cmd, command] if cmd == "type" => match get_type::get_type(command) {
             Ok(msg) => {
                 println!("{}", msg);
                 Ok(())
             }
             Err(e) => Err(e),
         },
-        ["cd", path] => {
+        [cmd, path] if cmd == "cd" => {
             if let Err(e) = cd::cd(path, current_path) {
                 eprintln!("cd: {}", e);
             }
             Ok(())
         }
-        ["pwd"] => {
+        [cmd] if cmd == "pwd" => {
             pwd::pwd()?;
             Ok(())
         }
-        ["ls"] => {
+        [cmd] if cmd == "ls" => {
             ls::ls()?;
             Ok(())
         }
         _ => {
-            println!("{}: command not found", parts[0]);
+            println!("{}: command not found", parsed_commands[0]);
             Ok(())
         }
     }

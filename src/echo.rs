@@ -1,4 +1,4 @@
-pub fn echo(args: &[&str]) {
+pub fn echo(args: &[String]) {
     if args.is_empty() {
         println!("Not enough Arguments");
         return;
