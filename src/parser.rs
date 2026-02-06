@@ -42,8 +42,13 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
             }
 
             b'\\' => {
-                current.push(commands[pos + 1]);
-                pos += 2;
+                if inside_single_quote {
+                    current.push(b'\\');
+                    pos += 1;
+                } else {
+                    current.push(commands[pos + 1]);
+                    pos += 2;
+                }
             }
 
             c => {
