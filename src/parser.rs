@@ -6,18 +6,30 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
 
     let mut current = Vec::new();
     let mut inside_single_quote = false;
+    let mut inside_double_quote = false;
     let mut args = Vec::new();
 
     while pos < commands.len() {
         match commands[pos] {
             b'\'' => {
-                inside_single_quote = true;
+                if !inside_double_quote {
+                    inside_single_quote = true;
+                    pos += 1;
+                    continue;
+                } else {
+                    current.push(b'\'');
+                    pos += 1;
+                }
+            }
+
+            b'"' => {
+                inside_double_quote = true;
                 pos += 1;
                 continue;
             }
 
             b' ' => {
-                if inside_single_quote {
+                if inside_single_quote || inside_double_quote {
                     current.push(b' ');
                 } else {
                     if !current.is_empty() {
