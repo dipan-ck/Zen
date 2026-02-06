@@ -41,6 +41,11 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
                 pos += 1;
             }
 
+            b'\\' => {
+                current.push(commands[pos + 1]);
+                pos += 2;
+            }
+
             c => {
                 current.push(c);
                 pos += 1;
