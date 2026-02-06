@@ -17,10 +17,15 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
             }
 
             b' ' => {
-                if !current.is_empty() {
-                    args.push(String::from_utf8(current.clone()).unwrap());
-                    current.clear();
+                if inside_single_quote {
+                    current.push(b' ');
+                } else {
+                    if !current.is_empty() {
+                        args.push(String::from_utf8(current.clone()).unwrap());
+                        current.clear();
+                    }
                 }
+
                 pos += 1;
             }
 
@@ -34,6 +39,5 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
     args.push(String::from_utf8(current.clone()).unwrap());
     current.clear();
 
-    println!("{:?}", args);
     Ok(args)
 }
