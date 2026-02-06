@@ -1,76 +1,33 @@
 use std::io::{self, Write};
 
-use crate::get_type::BUILTIN_TYPES;
+use crate::command::Command;
 
 pub mod cd;
+pub mod command;
 pub mod echo;
+pub mod executor;
 pub mod external_runner;
 pub mod get_type;
 pub mod ls;
-pub mod parser;
 pub mod pwd;
-pub fn run() -> Result<(), io::Error> {
-    let mut current_path = String::from("/");
+pub mod tokenizer;
 
+pub fn run() -> Result<(), io::Error> {
     loop {
-        print!("{}$ ", &current_path);
+        print!("$");
         io::stdout().flush().unwrap();
 
-        let mut command = String::new();
-        io::stdin().read_line(&mut command).unwrap();
+        //read user input  from terminal
+        let mut user_input = String::new();
+        io::stdin().read_line(&mut user_input).unwrap();
 
-        let parsed_commands: Vec<String> = parser::parse(command)?;
+        //tokenize the string input into Vector of String
+        let tokens = tokenizer::tokenize(user_input)?;
 
-        if parsed_commands.is_empty() {
-            continue;
-        }
+        //Takes the tokens Vector and returns a Command struct which is passed to an executor
+        let command = Command::new(tokens);
 
-        if parsed_commands[0] == "exit" {
-            return Ok(());
-        }
-
-        if !is_builtin(parsed_commands[0].trim()) {
-            external_runner::run_enternal_prog(&parsed_commands);
-        } else {
-            run_builtin(&parsed_commands, &mut current_path)?;
-        }
-    }
-}
-
-fn is_builtin(command: &str) -> bool {
-    BUILTIN_TYPES.contains(&command)
-}
-
-fn run_builtin(parsed_commands: &Vec<String>, current_path: &mut String) -> Result<(), io::Error> {
-    match parsed_commands.as_slice() {
-        [cmd, args @ ..] if cmd == "echo" => {
-            echo::echo(args);
-            Ok(())
-        }
-        [cmd, command] if cmd == "type" => match get_type::get_type(command) {
-            Ok(msg) => {
-                println!("{}", msg);
-                Ok(())
-            }
-            Err(e) => Err(e),
-        },
-        [cmd, path] if cmd == "cd" => {
-            if let Err(e) = cd::cd(path, current_path) {
-                eprintln!("cd: {}", e);
-            }
-            Ok(())
-        }
-        [cmd] if cmd == "pwd" => {
-            pwd::pwd()?;
-            Ok(())
-        }
-        [cmd] if cmd == "ls" => {
-            ls::ls()?;
-            Ok(())
-        }
-        _ => {
-            println!("{}: command not found", parsed_commands[0]);
-            Ok(())
-        }
+        // Takes the command struct which holds program, arguments, and redirection and does the execution
+        executor::execute(command)?;
     }
 }

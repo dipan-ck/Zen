@@ -1,6 +1,6 @@
 use std::io;
 
-pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
+pub fn tokenize(commands: String) -> Result<Vec<String>, io::Error> {
     let commands = commands.trim().as_bytes();
     let mut pos = 0;
 
@@ -72,7 +72,7 @@ pub fn parse(commands: String) -> Result<Vec<String>, io::Error> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::parse;
+    use crate::tokenizer::tokenize;
 
     #[test]
     fn test_single_quote_behaviour() {
@@ -90,7 +90,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -109,7 +109,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -130,7 +130,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -155,7 +155,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -176,7 +176,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -197,7 +197,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -214,7 +214,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -231,7 +231,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
@@ -255,7 +255,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = parse(input.to_string()).unwrap();
+            let result = tokenize(input.to_string()).unwrap();
             assert_eq!(result, expected, "Failed for input: {}", input);
         }
     }
