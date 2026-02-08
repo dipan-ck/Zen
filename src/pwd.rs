@@ -1,7 +1,10 @@
-use std::{env, io};
+use std::{
+    env,
+    io::{self, Write},
+};
 
-pub fn pwd() -> Result<(), io::Error> {
+pub fn pwd(writer: &mut dyn Write) -> Result<(), io::Error> {
     let dir = env::current_dir()?;
-    println!("{}", dir.display());
+    writeln!(writer, "{}", dir.display())?;
     Ok(())
 }

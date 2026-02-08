@@ -1,20 +1,22 @@
-enum Stream {
+#[derive(Debug)]
+pub enum Stream {
     STDOUT,
     STDERR,
     STDIN,
 }
-
-enum Mode {
+#[derive(Debug)]
+pub enum Mode {
     OVERWRITE,
     APPEND,
 }
-
-struct Redirect {
-    target: String,
-    stream: Stream,
-    mode: Mode,
+#[derive(Debug)]
+pub struct Redirect {
+    pub target: String,
+    pub stream: Stream,
+    pub mode: Mode,
 }
 
+#[derive(Debug)]
 pub struct Command {
     pub program: String,
     pub arguments: Vec<String>,
@@ -65,7 +67,7 @@ impl Command {
                     pos += 1;
                 }
                 _ => {
-                    arguments.push(tokens[0].clone());
+                    arguments.push(tokens[pos].clone());
                     pos += 1;
                 }
             }
