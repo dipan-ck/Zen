@@ -81,16 +81,15 @@ pub fn run_enternal_prog(command: &Command) -> Result<(), io::Error> {
     let mut cmd = process::Command::new(&command.program);
     cmd.args(&command.arguments);
 
-    let mut file = OpenOptions::new();
-    file.create(true).write(true);
-
     for redirect in &command.redirects {
+        let mut options = OpenOptions::new();
+        options.create(true).write(true);
         match redirect.mode {
-            Mode::OVERWRITE => file.truncate(true),
-            Mode::APPEND => file.append(true),
+            Mode::OVERWRITE => options.truncate(true),
+            Mode::APPEND => options.append(true),
         };
 
-        let file = file.open(&redirect.target)?;
+        let file = options.open(&redirect.target)?;
 
         match redirect.stream {
             Stream::STDOUT => cmd.stdout(Stdio::from(file)),
