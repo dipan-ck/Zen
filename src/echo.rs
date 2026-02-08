@@ -1,11 +1,7 @@
-pub fn echo(args: &[String]) {
-    if args.is_empty() {
-        println!("Not enough Arguments");
-        return;
-    }
+use std::io::{self, Write};
 
-    for i in args {
-        print!("{i} ");
-    }
-    println!();
+pub fn echo(args: &[String], writer: &mut dyn Write) -> Result<(), io::Error> {
+    writeln!(writer, "{}", args.join(" "))?;
+
+    Ok(())
 }

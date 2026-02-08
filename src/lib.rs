@@ -25,7 +25,13 @@ pub fn run() -> Result<(), io::Error> {
         let tokens = tokenizer::tokenize(user_input)?;
 
         //Takes the tokens Vector and returns a Command struct which is passed to an executor
+        println!("{tokens:?}");
         let command = Command::new(tokens);
+        println!("{command:?}");
+
+        if command.program == "exit" {
+            return Ok(());
+        }
 
         // Takes the command struct which holds program, arguments, and redirection and does the execution
         executor::execute(command)?;
