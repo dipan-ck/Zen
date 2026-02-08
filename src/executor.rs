@@ -1,6 +1,7 @@
 use std::{
     fs::OpenOptions,
     io::{self, Write},
+    process::{self, Stdio},
 };
 
 use crate::{
@@ -13,6 +14,11 @@ use crate::{
 };
 
 pub fn execute(command: Command) -> Result<(), io::Error> {
+    if !BUILTIN_TYPES.contains(&&command.program.as_str()) {
+        run_enternal_prog(&command)?;
+        return Ok(());
+    }
+
     let mut stdout: Box<dyn Write> = Box::new(io::stdout());
     let mut stderr: Box<dyn Write> = Box::new(io::stderr());
 
@@ -28,9 +34,7 @@ pub fn execute(command: Command) -> Result<(), io::Error> {
         };
     }
 
-    if BUILTIN_TYPES.contains(&command.program.as_str()) {
-        run_builtin(&command, &mut *stdout, &mut *stderr)?;
-    }
+    run_builtin(&command, &mut *stdout, &mut *stderr)?;
 
     Ok(())
 }
@@ -62,13 +66,41 @@ fn run_builtin(
     match command.program.as_str() {
         "echo" => echo(&command.arguments, stdout)?,
         "ls" => ls(stdout)?,
-        "type" => get_type(&command.arguments, stdout)?,
+        "type" => get_type(&command, stdout)?,
         "pwd" => pwd(stdout)?,
         "cd" => cd(&command.arguments)?,
         _ => {
             writeln!(stderr, "{}: command not found", command.program)?;
         }
     }
+
+    Ok(())
+}
+
+pub fn run_enternal_prog(command: &Command) -> Result<(), io::Error> {
+    let mut cmd = process::Command::new(&command.program);
+    cmd.args(&command.arguments);
+
+    let mut file = OpenOptions::new();
+    file.create(true).write(true);
+
+    for redirect in &command.redirects {
+        match redirect.mode {
+            Mode::OVERWRITE => file.truncate(true),
+            Mode::APPEND => file.append(true),
+        };
+
+        let file = file.open(&redirect.target)?;
+
+        match redirect.stream {
+            Stream::STDOUT => cmd.stdout(Stdio::from(file)),
+            Stream::STDERR => cmd.stderr(Stdio::from(file)),
+            Stream::STDIN => cmd.stdin(Stdio::from(file)), //to be changed later
+        };
+    }
+
+    let mut child = cmd.spawn()?;
+    child.wait()?;
 
     Ok(())
 }
