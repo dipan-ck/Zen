@@ -48,7 +48,7 @@ impl Command {
                         Stream::STDOUT,
                         Mode::OVERWRITE,
                     ));
-                    pos += 1;
+                    pos += 2;
                 }
                 ">>" if pos + 1 < tokens.len() => {
                     redirects.push(Redirect::new(
@@ -56,7 +56,7 @@ impl Command {
                         Stream::STDOUT,
                         Mode::APPEND,
                     ));
-                    pos += 1;
+                    pos += 2;
                 }
                 "2>" if pos + 1 < tokens.len() => {
                     redirects.push(Redirect::new(
@@ -64,7 +64,7 @@ impl Command {
                         Stream::STDERR,
                         Mode::OVERWRITE,
                     ));
-                    pos += 1;
+                    pos += 2;
                 }
                 _ => {
                     arguments.push(tokens[pos].clone());

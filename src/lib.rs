@@ -6,7 +6,6 @@ pub mod cd;
 pub mod command;
 pub mod echo;
 pub mod executor;
-pub mod external_runner;
 pub mod get_type;
 pub mod ls;
 pub mod pwd;
@@ -25,9 +24,7 @@ pub fn run() -> Result<(), io::Error> {
         let tokens = tokenizer::tokenize(user_input)?;
 
         //Takes the tokens Vector and returns a Command struct which is passed to an executor
-        println!("{tokens:?}");
         let command = Command::new(tokens);
-        println!("{command:?}");
 
         if command.program == "exit" {
             return Ok(());

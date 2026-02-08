@@ -3,33 +3,33 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::{env, fs, io};
 
+use crate::command::Command;
+
 pub const BUILTIN_TYPES: [&str; 6] = ["echo", "ls", "exit", "type", "pwd", "cd"];
 
-pub fn get_type(arguments: &Vec<String>, writer: &mut dyn Write) -> Result<(), io::Error> {
-    let command = arguments[0].trim();
-
-    if BUILTIN_TYPES.contains(&command) {
-        writeln!(writer, "{}: is a shell builtin", command)?;
+pub fn get_type(command: &Command, writer: &mut dyn Write) -> Result<(), io::Error> {
+    if BUILTIN_TYPES.contains(&&command.arguments[0].as_str()) {
+        writeln!(writer, "{}: is a shell builtin", command.arguments[0])?;
         return Ok(());
     };
 
     let paths = match env::var_os("PATH") {
         Some(p) => p,
         None => {
-            writeln!(writer, "{}: not found", command)?;
+            writeln!(writer, "{}: not found", command.arguments[0])?;
             return Ok(());
         }
     };
 
     for path in env::split_paths(&paths) {
-        let candidate = path.join(command);
+        let candidate = path.join(&command.arguments[0]);
         if is_executable(&candidate) {
-            writeln!(writer, "{}: not found", command)?;
+            writeln!(writer, "{}: {}", command.arguments[0], candidate.display())?;
             return Ok(());
         }
     }
     // not found
-    writeln!(writer, "{}: not found", command);
+    writeln!(writer, "{}: not found", command.arguments[0])?;
 
     Ok(())
 }
