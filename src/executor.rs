@@ -1,3 +1,16 @@
+/*
+The executor takes a command struct which contains the program, arguments and array of redirections, Now all shells resolve
+redirections from left to right and this one is no exeption. When the program is a external type we call the external program
+runner which spawns a process and creates file for each redirection and then sets the last file created from the last redirection as the stdout or stderr foir the process to run.
+
+For builtin type we create a stdout and stderr which intitially holds the defaults but when looping through the redirection we assign
+values to them that has a Write trait. because the stdout we create will be sent as a s arguments to the bultin programs which prints results
+using writeln! macro and this macro takes a value that implements the Write trait.
+
+****FOR BETTER UNDERSTANDING OF EXECUTOR I SUGGEST YOU TO FIRST GO THROUGH THE COMMAND MODULE,
+TO UNDERSTAND HOW WE ARE STRUCTURING THE TOKENS INTO STRUCT.****
+*/
+
 use std::{
     fs::OpenOptions,
     io::{self, Write},
@@ -6,7 +19,7 @@ use std::{
 
 use crate::{
     cd::cd,
-    command::{Command, Mode, Redirect, Stream},
+    command::{Command, Mode, Stream},
     echo::echo,
     get_type::{BUILTIN_TYPES, get_type},
     ls::ls,
@@ -15,49 +28,45 @@ use crate::{
 
 pub fn execute(command: Command) -> Result<(), io::Error> {
     if !BUILTIN_TYPES.contains(&&command.program.as_str()) {
-        run_enternal_prog(&command)?;
-        return Ok(());
+        run_external_program(&command)?
     }
 
     let mut stdout: Box<dyn Write> = Box::new(io::stdout());
     let mut stderr: Box<dyn Write> = Box::new(io::stderr());
 
     for redirect in &command.redirects {
+        let mut option = OpenOptions::new();
+        option.create(true).write(true);
+
         match redirect.stream {
             Stream::STDOUT => {
-                stdout = build_writer(redirect)?;
+                match redirect.mode {
+                    Mode::APPEND => option.append(true),
+                    Mode::OVERWRITE => option.truncate(true),
+                };
+
+                let file = option.open(&redirect.target)?;
+
+                stdout = Box::new(file);
             }
             Stream::STDERR => {
-                stderr = build_writer(redirect)?;
+                match redirect.mode {
+                    Mode::APPEND => option.append(true),
+                    Mode::OVERWRITE => option.truncate(true),
+                };
+
+                let file = option.open(&redirect.target)?;
+
+                stderr = Box::new(file)
             }
-            _ => {}
+            Stream::STDIN => {}
         };
     }
 
-    run_builtin(&command, &mut *stdout, &mut *stderr)?;
+    run_builtin(&command, &mut stdout, &mut stderr);
 
     Ok(())
 }
-
-fn build_writer(redirect: &Redirect) -> Result<Box<dyn Write>, io::Error> {
-    let mut file_open_options = OpenOptions::new();
-
-    file_open_options.write(true).create(true);
-
-    match redirect.mode {
-        Mode::APPEND => {
-            file_open_options.append(true);
-        }
-        Mode::OVERWRITE => {
-            file_open_options.truncate(true);
-        }
-    };
-
-    let file = file_open_options.open(&redirect.target)?;
-
-    Ok(Box::new(file))
-}
-
 fn run_builtin(
     command: &Command,
     stdout: &mut dyn Write,
@@ -77,29 +86,46 @@ fn run_builtin(
     Ok(())
 }
 
-pub fn run_enternal_prog(command: &Command) -> Result<(), io::Error> {
-    let mut cmd = process::Command::new(&command.program);
-    cmd.args(&command.arguments);
+fn run_external_program(command: &Command) -> Result<(), io::Error> {
+    let mut program = process::Command::new(&command.program);
+    program.args(&command.arguments);
 
     for redirect in &command.redirects {
-        let mut options = OpenOptions::new();
-        options.create(true).write(true);
-        match redirect.mode {
-            Mode::OVERWRITE => options.truncate(true),
-            Mode::APPEND => options.append(true),
-        };
-
-        let file = options.open(&redirect.target)?;
+        let mut option = OpenOptions::new();
+        option.create(true).write(true);
 
         match redirect.stream {
-            Stream::STDOUT => cmd.stdout(Stdio::from(file)),
-            Stream::STDERR => cmd.stderr(Stdio::from(file)),
-            Stream::STDIN => cmd.stdin(Stdio::from(file)), //to be changed later
-        };
+            Stream::STDOUT => match redirect.mode {
+                Mode::APPEND => {
+                    option.append(true);
+                    let file = option.open(&redirect.target)?;
+                    program.stdout(Stdio::from(file));
+                }
+                Mode::OVERWRITE => {
+                    option.truncate(true);
+                    let file = option.open(&redirect.target)?;
+                    program.stdout(Stdio::from(file));
+                }
+            },
+
+            Stream::STDERR => match redirect.mode {
+                Mode::APPEND => {
+                    option.append(true);
+                    let file = option.open(&redirect.target)?;
+                    program.stderr(Stdio::from(file));
+                }
+                Mode::OVERWRITE => {
+                    option.truncate(true);
+                    let file = option.open(&redirect.target)?;
+                    program.stderr(Stdio::from(file));
+                }
+            },
+
+            Stream::STDIN => {}
+        }
     }
 
-    let mut child = cmd.spawn()?;
-    child.wait()?;
+    program.spawn()?.wait()?;
 
     Ok(())
 }
