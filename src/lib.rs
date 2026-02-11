@@ -1,7 +1,7 @@
-use std::io::{self, Write};
-
-use crate::command::Command;
-
+use crate::{autocompletion::AutocompleteHelper, command::Command};
+use rustyline::{Editor, history::FileHistory};
+use std::io::{self};
+pub mod autocompletion;
 pub mod cd;
 pub mod command;
 pub mod echo;
@@ -12,13 +12,19 @@ pub mod pwd;
 pub mod tokenizer;
 
 pub fn run() -> Result<(), io::Error> {
-    loop {
-        print!("$");
-        io::stdout().flush().unwrap();
+    let mut rl: Editor<AutocompleteHelper, FileHistory> = Editor::new().unwrap();
+    rl.set_helper(Some(AutocompleteHelper));
 
-        //read user input  from terminal
-        let mut user_input = String::new();
-        io::stdin().read_line(&mut user_input).unwrap();
+    loop {
+        let user_input = rl.readline(">> ");
+
+        let user_input = match user_input {
+            Ok(line) => line,
+            Err(_) => return Ok(()),
+        };
+
+        // optional: save history
+        rl.add_history_entry(&user_input).unwrap();
 
         //tokenize the string input into Vector of String
         let tokens = tokenizer::tokenize(user_input)?;

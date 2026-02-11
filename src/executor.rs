@@ -28,7 +28,10 @@ use crate::{
 
 pub fn execute(command: Command) -> Result<(), io::Error> {
     if !BUILTIN_TYPES.contains(&&command.program.as_str()) {
-        run_external_program(&command)?
+        if let Err(err) = run_external_program(&command) {
+            return Err(err);
+        }
+        return Ok(());
     }
 
     let mut stdout: Box<dyn Write> = Box::new(io::stdout());
@@ -63,7 +66,9 @@ pub fn execute(command: Command) -> Result<(), io::Error> {
         };
     }
 
-    run_builtin(&command, &mut stdout, &mut stderr);
+    if let Err(err) = run_builtin(&command, &mut stdout, &mut stderr) {
+        return Err(err);
+    }
 
     Ok(())
 }
