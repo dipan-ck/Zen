@@ -13,7 +13,8 @@ pub mod tokenizer;
 
 pub fn run() -> Result<(), io::Error> {
     let mut rl: Editor<AutocompleteHelper, FileHistory> = Editor::new().unwrap();
-    rl.set_helper(Some(AutocompleteHelper));
+    let helper = AutocompleteHelper::new();
+    rl.set_helper(Some(helper));
 
     loop {
         let user_input = rl.readline(">> ");

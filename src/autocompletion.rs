@@ -1,3 +1,8 @@
+use std::{
+    env, fs,
+    io::{self, Write},
+};
+
 use rustyline::{
     Context, Helper,
     completion::{Completer, Pair},
@@ -6,9 +11,11 @@ use rustyline::{
     validate::Validator,
 };
 
-use crate::get_type::BUILTIN_TYPES;
+use crate::get_type::{BUILTIN_TYPES, is_executable};
 
-pub struct AutocompleteHelper;
+pub struct AutocompleteHelper {
+    suggestions: Vec<Pair>,
+}
 
 impl Highlighter for AutocompleteHelper {}
 impl Helper for AutocompleteHelper {}
@@ -28,19 +35,64 @@ impl Completer for AutocompleteHelper {
         _: usize,
         _ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
-        let suggestions: Vec<Pair> = BUILTIN_TYPES
-            .iter()
-            .map(|cmd| Pair {
-                display: cmd.to_string(),
-                replacement: format!("{} ", cmd.to_string()),
-            })
-            .collect();
+        let suggestions = &self.suggestions;
 
-        let matches: Vec<Pair> = suggestions
-            .into_iter()
-            .filter(|s| s.display.starts_with(line))
-            .collect();
+        let mut matches = Vec::new();
+
+        if suggestions.is_empty() {
+            print!("\x07");
+            io::stdout().flush()?;
+            return Ok((0, matches));
+        } else {
+            matches = suggestions
+                .iter()
+                .filter(|s| s.display.starts_with(line))
+                .cloned()
+                .collect();
+        }
 
         Ok((0, matches))
     }
+}
+
+impl AutocompleteHelper {
+    pub fn new() -> Self {
+        AutocompleteHelper {
+            suggestions: build_sugestions().unwrap_or_default(),
+        }
+    }
+}
+
+fn build_sugestions() -> Option<Vec<Pair>> {
+    let paths = match env::var_os("PATH") {
+        Some(p) => p,
+        None => {
+            return None;
+        }
+    };
+
+    let mut suggestions: Vec<Pair> = Vec::new();
+
+    for dir in env::split_paths(&paths) {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for e in entries.flatten() {
+                if is_executable(&e.path()) {
+                    let name = e.file_name().to_string_lossy().into_owned();
+                    suggestions.push(Pair {
+                        display: name.to_owned(),
+                        replacement: name.to_owned(),
+                    })
+                }
+            }
+        }
+    }
+
+    for cmd in BUILTIN_TYPES {
+        suggestions.push(Pair {
+            display: cmd.to_string(),
+            replacement: cmd.to_string(),
+        });
+    }
+
+    Some(suggestions)
 }
