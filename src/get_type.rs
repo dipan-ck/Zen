@@ -1,9 +1,9 @@
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::{env, fs, io};
 
 use crate::command::Command;
+use std::{env, fs, io};
 
 pub const BUILTIN_TYPES: [&str; 6] = ["echo", "ls", "exit", "type", "pwd", "cd"];
 
@@ -12,7 +12,6 @@ pub fn get_type(command: &Command, writer: &mut dyn Write) -> Result<(), io::Err
         writeln!(writer, "{}: is a shell builtin", command.arguments[0])?;
         return Ok(());
     };
-
     let paths = match env::var_os("PATH") {
         Some(p) => p,
         None => {
