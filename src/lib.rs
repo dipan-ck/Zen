@@ -1,5 +1,5 @@
 use crate::{autocompletion::AutocompleteHelper, command::Command};
-use rustyline::{Editor, history::FileHistory};
+use rustyline::{Editor, config::Configurer, history::FileHistory};
 use std::io::{self};
 pub mod autocompletion;
 pub mod cd;
@@ -15,6 +15,7 @@ pub fn run() -> Result<(), io::Error> {
     let mut rl: Editor<AutocompleteHelper, FileHistory> = Editor::new().unwrap();
     let helper = AutocompleteHelper::new();
     rl.set_helper(Some(helper));
+    rl.set_completion_type(rustyline::CompletionType::List);
 
     loop {
         let user_input = rl.readline(">> ");

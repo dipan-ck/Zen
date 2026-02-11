@@ -37,18 +37,38 @@ impl Completer for AutocompleteHelper {
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         let suggestions = &self.suggestions;
 
-        let mut matches = Vec::new();
+        let matches: Vec<Pair> = suggestions
+            .iter()
+            .filter(|s| s.display.starts_with(line))
+            .cloned()
+            .collect();
 
-        if suggestions.is_empty() {
+        if matches.is_empty() {
             print!("\x07");
             io::stdout().flush()?;
             return Ok((0, matches));
-        } else {
-            matches = suggestions
-                .iter()
-                .filter(|s| s.display.starts_with(line))
-                .cloned()
-                .collect();
+        }
+
+        if matches.len() == 1 {
+            return Ok((0, matches));
+        }
+
+        let mut prefix = matches[0].display.clone();
+
+        for m in &matches {
+            while !m.display.starts_with(&prefix) {
+                prefix.pop();
+            }
+        }
+
+        if prefix.len() > line.len() {
+            return Ok((
+                0,
+                vec![Pair {
+                    display: prefix.clone(),
+                    replacement: prefix,
+                }],
+            ));
         }
 
         Ok((0, matches))
@@ -71,7 +91,20 @@ fn build_sugestions() -> Option<Vec<Pair>> {
         }
     };
 
-    let mut suggestions: Vec<Pair> = Vec::new();
+    let mut suggestions: Vec<Pair> = vec![
+        Pair {
+            display: "xyz_foo".to_string(),
+            replacement: "xyz_foo".to_string(),
+        },
+        Pair {
+            display: "xyz_foo_bar".to_string(),
+            replacement: "xyz_foo_bar".to_string(),
+        },
+        Pair {
+            display: "xyz_foo_bar_baz".to_string(),
+            replacement: "xyz_foo_bar_baz".to_string(),
+        },
+    ];
 
     for dir in env::split_paths(&paths) {
         if let Ok(entries) = fs::read_dir(dir) {
