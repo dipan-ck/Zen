@@ -24,11 +24,11 @@ pub struct Redirect {
     pub mode: Mode,
 }
 
-#[derive(Debug)]
 pub struct Command {
     pub program: String,
     pub arguments: Vec<String>,
     pub redirects: Vec<Redirect>,
+    pub piped_command: Option<Box<Command>>,
 }
 
 impl Redirect {
@@ -46,6 +46,7 @@ impl Command {
         let program = tokens[0].clone();
         let mut arguments = Vec::new();
         let mut redirects = Vec::new();
+        let mut piped_command = None;
         let mut pos = 1;
 
         while pos < tokens.len() {
@@ -74,6 +75,11 @@ impl Command {
                     ));
                     pos += 2;
                 }
+
+                "|" => {
+                    piped_command = Some(Box::new(Command::new(tokens[pos + 1..].to_vec())));
+                    break;
+                }
                 _ => {
                     arguments.push(tokens[pos].clone());
                     pos += 1;
@@ -82,6 +88,7 @@ impl Command {
         }
 
         Command {
+            piped_command,
             program,
             arguments,
             redirects,

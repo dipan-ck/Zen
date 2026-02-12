@@ -13,7 +13,7 @@ TO UNDERSTAND HOW WE ARE STRUCTURING THE TOKENS INTO STRUCT.****
 
 use std::{
     fs::OpenOptions,
-    io::{self, Write},
+    io::{self, Write, stdout},
     process::{self, Stdio},
 };
 
@@ -91,9 +91,21 @@ fn run_builtin(
     Ok(())
 }
 
-fn run_external_program(command: &Command) -> Result<(), io::Error> {
+fn run_external_program(
+    command: &Command,
+    stdin: Option<Stdio>,
+    stdout: Option<Stdio>,
+) -> Result<process::Child, io::Error> {
     let mut program = process::Command::new(&command.program);
     program.args(&command.arguments);
+
+    if let Some(s) = stdout {
+        program.stdout(s);
+    };
+
+    if let Some(s) = stdin {
+        program.stdin(s);
+    };
 
     for redirect in &command.redirects {
         let mut option = OpenOptions::new();
@@ -130,7 +142,40 @@ fn run_external_program(command: &Command) -> Result<(), io::Error> {
         }
     }
 
-    program.spawn()?.wait()?;
+    program.spawn()
+}
+
+fn run_pipeline(command: &Command) -> Result<(), io::Error> {
+    let mut previous_stdout = None;
+    let mut processes = Vec::new();
+    let mut current = Some(command);
+
+    while let Some(cmd) = current {
+        let has_piped_command = cmd.piped_command.is_some();
+
+        let stdout = if has_piped_command {
+            Some(Stdio::piped())
+        } else {
+            None
+        };
+
+        let stdin = previous_stdout.take();
+
+        let mut child = run_external_program(cmd, stdin, stdout).unwrap();
+
+        if has_piped_command {
+            let pipe_read = child.stdout.take().unwrap();
+            previous_stdout = Some(Stdio::from(pipe_read));
+        }
+
+        processes.push(child);
+
+        current = cmd.piped_command.as_deref();
+    }
+
+    for mut child in processes {
+        child.wait().unwrap();
+    }
 
     Ok(())
 }
