@@ -39,6 +39,6 @@ pub fn run() -> Result<(), io::Error> {
         }
 
         // Takes the command struct which holds program, arguments, and redirection and does the execution
-        executor::execute(command)?;
+        executor::run_pipeline(&command)?;
     }
 }

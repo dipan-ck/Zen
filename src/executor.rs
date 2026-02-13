@@ -11,9 +11,11 @@ using writeln! macro and this macro takes a value that implements the Write trai
 TO UNDERSTAND HOW WE ARE STRUCTURING THE TOKENS INTO STRUCT.****
 */
 
+use os_pipe::pipe;
+use std::io::Read;
 use std::{
     fs::OpenOptions,
-    io::{self, Write, stdout},
+    io::{self, Write},
     process::{self, Stdio},
 };
 
@@ -26,15 +28,12 @@ use crate::{
     pwd::pwd,
 };
 
-pub fn execute(command: Command) -> Result<(), io::Error> {
-    if !BUILTIN_TYPES.contains(&&command.program.as_str()) {
-        if let Err(err) = run_external_program(&command) {
-            return Err(err);
-        }
-        return Ok(());
-    }
-
-    let mut stdout: Box<dyn Write> = Box::new(io::stdout());
+pub fn run_builtin(
+    command: &Command,
+    _stdin: Option<Box<dyn Read>>,
+    stdout: Option<Box<dyn Write>>,
+) -> Result<(), io::Error> {
+    let mut stdout = stdout.unwrap_or(Box::new(io::stdout()));
     let mut stderr: Box<dyn Write> = Box::new(io::stderr());
 
     for redirect in &command.redirects {
@@ -66,22 +65,11 @@ pub fn execute(command: Command) -> Result<(), io::Error> {
         };
     }
 
-    if let Err(err) = run_builtin(&command, &mut stdout, &mut stderr) {
-        return Err(err);
-    }
-
-    Ok(())
-}
-fn run_builtin(
-    command: &Command,
-    stdout: &mut dyn Write,
-    stderr: &mut dyn Write,
-) -> Result<(), io::Error> {
     match command.program.as_str() {
-        "echo" => echo(&command.arguments, stdout)?,
-        "ls" => ls(stdout)?,
-        "type" => get_type(&command, stdout)?,
-        "pwd" => pwd(stdout)?,
+        "echo" => echo(&command.arguments, &mut stdout)?,
+        "ls" => ls(&mut stdout)?,
+        "type" => get_type(&command, &mut stdout)?,
+        "pwd" => pwd(&mut stdout)?,
         "cd" => cd(&command.arguments)?,
         _ => {
             writeln!(stderr, "{}: command not found", command.program)?;
@@ -91,7 +79,7 @@ fn run_builtin(
     Ok(())
 }
 
-fn run_external_program(
+fn run_external(
     command: &Command,
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
@@ -145,36 +133,61 @@ fn run_external_program(
     program.spawn()
 }
 
-fn run_pipeline(command: &Command) -> Result<(), io::Error> {
-    let mut previous_stdout = None;
+pub fn run_pipeline(command: &Command) -> Result<(), io::Error> {
+    let mut stdin: Option<Stdio> = None;
     let mut processes = Vec::new();
     let mut current = Some(command);
 
     while let Some(cmd) = current {
-        let has_piped_command = cmd.piped_command.is_some();
+        let needs_pipe = cmd.piped_command.is_some();
 
-        let stdout = if has_piped_command {
+        let stdout = if needs_pipe {
             Some(Stdio::piped())
         } else {
             None
         };
 
-        let stdin = previous_stdout.take();
+        if BUILTIN_TYPES.contains(&cmd.program.as_str()) {
+            // Decide where builtin writes
 
-        let mut child = run_external_program(cmd, stdin, stdout).unwrap();
+            let writer: Option<Box<dyn Write>>;
 
-        if has_piped_command {
-            let pipe_read = child.stdout.take().unwrap();
-            previous_stdout = Some(Stdio::from(pipe_read));
+            if needs_pipe {
+                // create pipe
+                let (reader, pipe_writer) = pipe()?;
+
+                // builtin writes into pipe
+                writer = Some(Box::new(pipe_writer));
+
+                // next stage reads from pipe
+                stdin = Some(Stdio::from(reader));
+            } else {
+                // last stage → terminal
+                writer = Some(Box::new(io::stdout()));
+            }
+
+            // run builtin
+            run_builtin(
+                cmd, None, // stdin later
+                writer,
+            )?;
+
+            current = cmd.piped_command.as_deref();
+            continue;
         }
 
-        processes.push(child);
+        let mut process = run_external(cmd, stdin.take(), stdout)?;
 
+        if needs_pipe {
+            stdin = Some(Stdio::from(process.stdout.take().unwrap()));
+        }
+
+        processes.push(process);
         current = cmd.piped_command.as_deref();
     }
 
-    for mut child in processes {
-        child.wait().unwrap();
+    for mut p in processes {
+        p.wait()?;
     }
 
     Ok(())
