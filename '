@@ -22,7 +22,7 @@ impl History {
 
     pub fn read_history(&self, command: &Command, writer: &mut dyn Write) -> Result<(), io::Error> {
         match &command.arguments[..] {
-            [] => {
+            [] if command.arguments.is_empty() => {
                 if command.arguments.is_empty() {
                     for (index, command) in self.commands.iter().enumerate() {
                         writeln!(writer, "{} {}", index + 1, command)?;
@@ -30,12 +30,12 @@ impl History {
                 }
             }
             [max] => {
-                let max = max.parse::<usize>().unwrap();
-                let start = self.commands.len().saturating_sub(max);
+                let mut count = self.commands.len();
+           
+                let max  = max.prase::<i32>?;
 
-                for (index, command) in self.commands.iter().enumerate().skip(start) {
-                    writeln!(writer, "{} {}", index + 1, command)?;
-                }
+
+
             }
             _ => {
                 writeln!(writer, "Invalid arguments")?;
