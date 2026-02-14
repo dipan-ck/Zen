@@ -1,4 +1,4 @@
-use crate::{autocompletion::AutocompleteHelper, command::Command};
+use crate::{autocompletion::AutocompleteHelper, command::Command, history::HISTORY};
 use rustyline::{Editor, config::Configurer, history::FileHistory};
 use std::io::{self};
 pub mod autocompletion;
@@ -7,10 +7,10 @@ pub mod command;
 pub mod echo;
 pub mod executor;
 pub mod get_type;
+pub mod history;
 pub mod ls;
 pub mod pwd;
 pub mod tokenizer;
-
 pub fn run() -> Result<(), io::Error> {
     let mut rl: Editor<AutocompleteHelper, FileHistory> = Editor::new().unwrap();
     let helper = AutocompleteHelper::new();
@@ -24,6 +24,8 @@ pub fn run() -> Result<(), io::Error> {
             Ok(line) => line,
             Err(_) => return Ok(()),
         };
+
+        HISTORY.lock().unwrap().add(&user_input);
 
         // optional: save history
         rl.add_history_entry(&user_input).unwrap();

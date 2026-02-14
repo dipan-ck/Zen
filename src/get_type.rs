@@ -5,7 +5,7 @@ use std::{io::Write, path::PathBuf};
 use crate::command::Command;
 use std::{env, fs, io};
 
-pub const BUILTIN_TYPES: [&str; 6] = ["echo", "ls", "exit", "type", "pwd", "cd"];
+pub const BUILTIN_TYPES: [&str; 7] = ["echo", "history", "ls", "exit", "type", "pwd", "cd"];
 
 pub fn get_type(command: &Command, writer: &mut dyn Write) -> Result<(), io::Error> {
     if BUILTIN_TYPES.contains(&&command.arguments[0].as_str()) {

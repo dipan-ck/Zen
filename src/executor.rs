@@ -19,6 +19,7 @@ use std::{
     process::{self, Stdio},
 };
 
+use crate::history::HISTORY;
 use crate::{
     cd::cd,
     command::{Command, Mode, Stream},
@@ -71,6 +72,11 @@ pub fn run_builtin(
         "type" => get_type(&command, &mut stdout)?,
         "pwd" => pwd(&mut stdout)?,
         "cd" => cd(&command.arguments)?,
+        "history" => {
+            let history = HISTORY.lock().unwrap();
+
+            history.read_history(command, &mut stdout)?;
+        }
         _ => {
             writeln!(stderr, "{}: command not found", command.program)?;
         }
