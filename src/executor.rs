@@ -73,7 +73,7 @@ pub fn run_builtin(
         "pwd" => pwd(&mut stdout)?,
         "cd" => cd(&command.arguments)?,
         "history" => {
-            let history = HISTORY.lock().unwrap();
+            let mut history = HISTORY.lock().unwrap();
 
             history.read_history(command, &mut stdout)?;
         }
