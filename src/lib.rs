@@ -22,7 +22,7 @@ pub fn run() -> Result<(), io::Error> {
 
         let user_input = match user_input {
             Ok(line) => line,
-            Err(_) => return Ok(()),
+            Err(_) => break,
         };
 
         HISTORY.lock().unwrap().add(&user_input);
@@ -37,10 +37,18 @@ pub fn run() -> Result<(), io::Error> {
         let command = Command::new(tokens);
 
         if command.program == "exit" {
-            return Ok(());
+            break;
         }
 
         // Takes the command struct which holds program, arguments, and redirection and does the execution
-        executor::run_pipeline(&command)?;
+        if let Err(e) = executor::run_pipeline(&command) {
+            println!("{}", e);
+        } else {
+            continue;
+        }
     }
+
+    HISTORY.lock().unwrap().persist_history()?;
+
+    Ok(())
 }

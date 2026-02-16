@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs::{self, OpenOptions},
     io::{self, Write},
     sync::{LazyLock, Mutex},
@@ -8,17 +9,37 @@ use crate::command::Command;
 
 pub struct History {
     commands: Vec<String>,
+    history_file_entries: usize,
 }
 
 impl History {
     pub fn new() -> Self {
+        let hist_file_path = env::var("HISTFILE").unwrap_or_else(|_| String::from("./history.log"));
+        println!("History fetched from : {}", hist_file_path);
+        let contents = fs::read_to_string(hist_file_path).unwrap_or_default();
+        let commands: Vec<String> = contents.lines().map(|x| x.to_string()).collect();
+        let history_file_entries = commands.len();
         Self {
-            commands: Vec::new(),
+            commands,
+            history_file_entries,
         }
     }
 
     pub fn add(&mut self, command: &String) {
-        self.commands.push(command.to_string());
+        self.commands.push(command.to_owned());
+    }
+
+    pub fn persist_history(&self) -> Result<(), io::Error> {
+        let mut options = OpenOptions::new();
+        options.create(true).append(true).write(true);
+
+        let mut file = options.open("./history.log")?;
+
+        for c in &self.commands[self.history_file_entries..] {
+            writeln!(file, "{}", c)?;
+        }
+
+        Ok(())
     }
 
     pub fn read_history(
@@ -43,30 +64,12 @@ impl History {
                 }
             }
             [flag, path] if flag == "-r" => {
-                let mut command = Vec::new();
-                let mut current = Vec::new();
+                let history_file_content = fs::read_to_string(path)?;
 
-                let history_file_content = fs::read(path)?;
+                let commands: Vec<String> =
+                    history_file_content.lines().map(|x| x.to_owned()).collect();
 
-                let mut pos = 0;
-
-                while pos < history_file_content.len() {
-                    match history_file_content[pos] {
-                        b'\n' => {
-                            if !&current.is_empty() {
-                                command.push(String::from_utf8(current.to_owned()).unwrap());
-                                current.clear();
-                                pos += 1;
-                            }
-                        }
-                        _ => {
-                            current.push(history_file_content[pos]);
-                            pos += 1;
-                        }
-                    }
-                }
-
-                self.commands.extend_from_slice(&command[..]);
+                self.commands.extend_from_slice(&commands[..]);
             }
             [flag, path] if flag == "-w" => {
                 let mut options = OpenOptions::new();
